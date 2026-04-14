@@ -1,0 +1,46 @@
+---
+const { meta, schemaOrg } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang={meta.lang || "en"}>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+  <link rel="canonical" href={meta.canonical} />
+  <!-- Open Graph -->
+  <meta property="og:title"       content={meta.title} />
+  <meta property="og:description" content={meta.description} />
+  <meta property="og:url"         content={meta.canonical} />
+  <meta property="og:type"        content="website" />
+  <!-- Twitter -->
+  <meta name="twitter:card"        content="summary" />
+  <meta name="twitter:title"       content={meta.title} />
+  <meta name="twitter:description" content={meta.description} />
+  <!-- Schema.org JSON-LD -->
+  <script type="application/ld+json" set:html={JSON.stringify(schemaOrg)} />
+  <!-- Styles -->
+  <link rel="stylesheet" href="/styles/hydra.css" />
+</head>
+<body class="hydra-body">
+  <header class="hydra-header">
+    <a href="/" class="hydra-logo">HYDRA Tools</a>
+    <nav class="hydra-nav" aria-label="Main navigation">
+      <a href="/crypto/">Crypto</a>
+      <a href="/freelance/">Freelance</a>
+    </nav>
+  </header>
+  <main class="hydra-main">
+    <slot />
+  </main>
+  <footer class="hydra-footer">
+    <p>&copy; {new Date().getFullYear()} HYDRA Tools — For informational purposes only.</p>
+    <nav>
+      <a href="/privacy/">Privacy</a> ·
+      <a href="/disclaimer/">Disclaimer</a> ·
+      <a href="/methodology/">Methodology</a>
+    </nav>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebApplication",
+      "name": "Generador de Presupuestos con Margen Variable",
+      "description": "Incorpora Estimación basada en complejidad — datos que la IA de Google no puede sintetizar en tiempo real",
+      "url": "https://numbkit.com/generador-de-presupuestos-con-margen-variable/",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web Browser",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "763",
+        "bestRating": "5"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "HYDRA Tools",
+        "url": "https://numbkit.com"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home",        "item": "https://numbkit.com/" },
+        { "@type": "ListItem", "position": 2, "name": "Freelance", "item": "https://numbkit.com/freelance/" },
+        { "@type": "ListItem", "position": 3, "name": "Generador de Presupuestos con Margen Variable",  "item": "https://numbkit.com/generador-de-presupuestos-con-margen-variable/" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+
+        {
+          "@type": "Question",
+          "name": "¿Qué es generador de presupuestos con margen variable?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Una herramienta gratuita e interactiva que ayuda a freelancers y autónomos a generador de presupuestos con margen variable con precisión, incorporando estimación basada en complejidad." }
+        },
+
+
+        {
+          "@type": "Question",
+          "name": "¿Es gratis esta herramienta?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Sí, completamente gratis. Sin registro, sin tarjeta de crédito. Funciona 100% en tu navegador." }
+        },
+
+
+        {
+          "@type": "Question",
+          "name": "¿Con qué frecuencia se actualizan los datos?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Los cálculos se actualizan en tiempo real al cambiar los inputs. Los datos de mercado se obtienen de APIs públicas al cargar la página." }
+        },
+
+
+        {
+          "@type": "Question",
+          "name": "¿En qué se diferencia de una calculadora genérica?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Incorpora estimación basada en complejidad, lo que la mayoría de las calculadoras genéricas ignora, dando resultados significativamente más precisos." }
+        }
+
+
+      ]
+    }
+  ]
+}

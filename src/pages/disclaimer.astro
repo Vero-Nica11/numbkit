@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+const meta = {
+  title: "Disclaimer | Numbkit",
+  description: "Numbkit tools are for informational purposes only. Not financial advice.",
+  canonical: "https://numbkit.com/disclaimer/",
+  lang: "en",
+  slug: "disclaimer",
+};
+const schemaOrg = { "@context": "https://schema.org", "@type": "WebPage", "name": "Disclaimer" };
+---
+<BaseLayout meta={meta} schemaOrg={schemaOrg}>
+  <article style="max-width:680px;margin:2rem auto;color:var(--color-muted);line-height:1.8">
+    <h1>Disclaimer</h1>
+    <p>All tools on Numbkit are provided for <strong>informational and educational purposes only</strong>. Nothing on this website constitutes financial, investment, tax, or legal advice.</p>
+    <p>Cryptocurrency markets are highly volatile. Past performance does not guarantee future results. Always conduct your own research before making financial decisions.</p>
+    <p>Tool calculations are based on standard formulas and publicly available data. Results may differ from real-world outcomes due to market conditions, slippage, regulatory changes, or other factors.</p>
+    <p>Numbkit is not affiliated with any exchange, protocol, or financial institution mentioned in our tools.</p>
+    <h2>Methodology</h2>
+    <p>Our calculation logic is based on open financial formulas (impermanent loss, compound interest, tax brackets) and publicly available fee structures updated quarterly. We cite sources where applicable.</p>
+    <p><em>Last updated: April 2026</em></p>
+  </article>
+</BaseLayout>
