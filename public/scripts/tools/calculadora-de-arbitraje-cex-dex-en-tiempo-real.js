@@ -1,56 +1,87 @@
 /* HYDRA WIDGET | calculadora-de-arbitraje-cex-dex-en-tiempo-real | calculator | en */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
   const TOOL_ID   = 'calculadora-de-arbitraje-cex-dex-en-tiempo-real';
   const TOOL_TYPE = 'calculator';
   const LANG      = 'en';
-  const REQUIRES_API = true;
+  const REQUIRES_API = false;
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Amount / Monto",
+    "id": "cex_price",
+    "label": "CEX Price (USD)",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "67420",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Rate / Tasa (%)",
+    "id": "dex_price",
+    "label": "DEX Price (USD)",
     "type": "number",
-    "placeholder": "0.5",
+    "placeholder": "67890",
+    "unit": "USD"
+  },
+  {
+    "id": "trade_size",
+    "label": "Trade Size",
+    "type": "number",
+    "placeholder": "1",
+    "unit": "BTC"
+  },
+  {
+    "id": "cex_fee",
+    "label": "CEX Taker Fee (%)",
+    "type": "number",
+    "placeholder": "0.10",
     "unit": "%"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1h",
-      "4h",
-      "1d",
-      "1w",
-      "1mo"
-    ]
+    "id": "dex_fee",
+    "label": "DEX Swap Fee (%)",
+    "type": "number",
+    "placeholder": "0.30",
+    "unit": "%"
+  },
+  {
+    "id": "gas_fee",
+    "label": "Gas Fee (USD)",
+    "type": "number",
+    "placeholder": "2.50",
+    "unit": "USD"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Estimated Profit",
+    "id": "spread_pct",
+    "label": "Spread (%)",
+    "format": "percent"
+  },
+  {
+    "id": "gross_profit",
+    "label": "Gross Profit (USD)",
     "format": "currency"
   },
   {
-    "id": "out_roi",
+    "id": "total_fees",
+    "label": "Total Fees (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "net_profit",
+    "label": "Net Profit (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "roi_pct",
     "label": "ROI (%)",
     "format": "percent"
   },
   {
-    "id": "out_breakeven",
-    "label": "Breakeven Point",
-    "format": "currency"
+    "id": "breakeven_pct",
+    "label": "Breakeven Spread (%)",
+    "format": "percent"
   }
 ];
 
@@ -63,10 +94,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +128,35 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const cexPrice  = parseFloat(vals.cex_price);
+    const dexPrice  = parseFloat(vals.dex_price);
+    const tradeSize = parseFloat(vals.trade_size);
+    const cexFee    = parseFloat(vals.cex_fee) / 100;
+    const dexFee    = parseFloat(vals.dex_fee) / 100;
+    const gasFee    = parseFloat(vals.gas_fee);
+    const notional    = cexPrice * tradeSize;
+    const spread      = ((dexPrice - cexPrice) / cexPrice) * 100;
+    const grossProfit = (dexPrice - cexPrice) * tradeSize;
+    const totalFees   = (notional * cexFee) + (notional * dexFee) + gasFee;
+    const netProfit   = grossProfit - totalFees;
+    const roi         = (netProfit / notional) * 100;
+    const breakeven   = ((totalFees / notional) * 100);
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      spread_pct:    spread.toFixed(3) + '%',
+      gross_profit:  '$' + grossProfit.toFixed(2),
+      total_fees:    '$' + totalFees.toFixed(2),
+      net_profit:    (netProfit >= 0 ? '+' : '') + '$' + netProfit.toFixed(2),
+      roi_pct:       roi.toFixed(3) + '%',
+      breakeven_pct: breakeven.toFixed(3) + '%',
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +164,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +214,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

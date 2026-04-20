@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-comisiones-de-bridge-multicapa | calculator | en */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,47 +10,59 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Amount / Monto",
+    "id": "amount",
+    "label": "Amount to Bridge",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "5000",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Rate / Tasa (%)",
+    "id": "src_gas",
+    "label": "Source Chain Gas",
     "type": "number",
-    "placeholder": "0.5",
-    "unit": "%"
+    "placeholder": "3.50",
+    "unit": "USD"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1h",
-      "4h",
-      "1d",
-      "1w",
-      "1mo"
-    ]
+    "id": "dst_gas",
+    "label": "Destination Gas",
+    "type": "number",
+    "placeholder": "0.80",
+    "unit": "USD"
+  },
+  {
+    "id": "bridge_fee",
+    "label": "Bridge Fee (%)",
+    "type": "number",
+    "placeholder": "0.05",
+    "unit": "%"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Estimated Profit",
+    "id": "bridge_cost",
+    "label": "Bridge Fee (USD)",
     "format": "currency"
   },
   {
-    "id": "out_roi",
-    "label": "ROI (%)",
+    "id": "total_gas",
+    "label": "Total Gas (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "total_cost",
+    "label": "Total Cost (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "net_received",
+    "label": "Net Received (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "effective",
+    "label": "Effective Fee (%)",
     "format": "percent"
-  },
-  {
-    "id": "out_breakeven",
-    "label": "Breakeven Point",
-    "format": "currency"
   }
 ];
 
@@ -63,10 +75,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +109,30 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const amount    = parseFloat(vals.amount);
+    const srcGas    = parseFloat(vals.src_gas);
+    const dstGas    = parseFloat(vals.dst_gas);
+    const bridgeFee = parseFloat(vals.bridge_fee) / 100;
+    const bridgeCost= amount * bridgeFee;
+    const totalGas  = srcGas + dstGas;
+    const totalCost = bridgeCost + totalGas;
+    const netReceived = amount - totalCost;
+    const effective = (totalCost / amount) * 100;
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      bridge_cost:  '$' + bridgeCost.toFixed(2),
+      total_gas:    '$' + totalGas.toFixed(2),
+      total_cost:   '$' + totalCost.toFixed(2),
+      net_received: '$' + netReceived.toFixed(2),
+      effective:    effective.toFixed(3) + '%',
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +140,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +190,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

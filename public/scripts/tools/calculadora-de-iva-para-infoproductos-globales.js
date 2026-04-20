@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-iva-para-infoproductos-globales | calculator | es */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,47 +10,57 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Monto inicial",
+    "id": "price_net",
+    "label": "Precio sin Impuestos (USD)",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "19",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Tasa (%)",
-    "type": "number",
-    "placeholder": "0.5",
-    "unit": "%"
-  },
-  {
-    "id": "input_c",
-    "label": "Period / Período",
+    "id": "market",
+    "label": "Mercado Destino",
     "type": "select",
     "options": [
-      "1 hora",
-      "4 horas",
-      "1 día",
-      "1 semana",
-      "1 mes"
+      "EU (21% IVA)",
+      "UK (20% VAT)",
+      "USA (sin IVA federal)",
+      "LATAM (varía)",
+      "Canada (5-15% GST)"
     ]
+  },
+  {
+    "id": "volume",
+    "label": "Ventas Mensuales Estimadas",
+    "type": "number",
+    "placeholder": "50",
+    "unit": "ventas"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Ganancia Estimada",
-    "format": "currency"
-  },
-  {
-    "id": "out_roi",
-    "label": "ROI (%)",
+    "id": "vat_rate",
+    "label": "Tasa de IVA Aplicable",
     "format": "percent"
   },
   {
-    "id": "out_breakeven",
-    "label": "Punto de Equilibrio",
+    "id": "vat_amount",
+    "label": "IVA por Venta (USD)",
     "format": "currency"
+  },
+  {
+    "id": "final_price",
+    "label": "Precio Final al Cliente",
+    "format": "currency"
+  },
+  {
+    "id": "monthly_vat",
+    "label": "IVA Mensual a Retener",
+    "format": "currency"
+  },
+  {
+    "id": "compliance",
+    "label": "Alerta de Cumplimiento",
+    "format": "text"
   }
 ];
 
@@ -63,10 +73,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +107,40 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const price   = parseFloat(vals.price_net);
+    const market  = vals.market;
+    const volume  = parseFloat(vals.volume);
+    const VAT_RATES = {
+      'EU (21% IVA)': 0.21,
+      'UK (20% VAT)': 0.20,
+      'USA (sin IVA federal)': 0,
+      'LATAM (varía)': 0.18,
+      'Canada (5-15% GST)': 0.13,
+    };
+    const rate      = VAT_RATES[market] || 0;
+    const vatAmount = price * rate;
+    const finalPrice= price + vatAmount;
+    const monthlyVat= vatAmount * volume;
+    let compliance = '';
+    if (market.includes('EU'))       compliance = '⚠️ Registro MOSS/OSS requerido si vendés a EU';
+    else if (market.includes('UK'))  compliance = '⚠️ Registro VAT UK obligatorio desde £1';
+    else if (market.includes('USA')) compliance = '✓ Sin IVA federal — verificar sales tax estatal';
+    else                              compliance = '✓ Verificar normativa local';
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      vat_rate:    (rate * 100).toFixed(1) + '%',
+      vat_amount:  '$' + vatAmount.toFixed(2),
+      final_price: '$' + finalPrice.toFixed(2),
+      monthly_vat: '$' + monthlyVat.toFixed(2),
+      compliance:  compliance,
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +148,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +198,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

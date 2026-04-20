@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-roi-para-bots-de-arbitraje-open-source | calculator | en */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,46 +10,65 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Amount / Monto",
+    "id": "capital",
+    "label": "Initial Capital",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "10000",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Rate / Tasa (%)",
+    "id": "daily_profit",
+    "label": "Avg Profit per Trade (%)",
     "type": "number",
-    "placeholder": "0.5",
+    "placeholder": "0.15",
     "unit": "%"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1h",
-      "4h",
-      "1d",
-      "1w",
-      "1mo"
-    ]
+    "id": "daily_trades",
+    "label": "Trades per Day",
+    "type": "number",
+    "placeholder": "20",
+    "unit": "#"
+  },
+  {
+    "id": "operating_days",
+    "label": "Operating Days",
+    "type": "number",
+    "placeholder": "30",
+    "unit": "days"
+  },
+  {
+    "id": "monthly_cost",
+    "label": "Monthly Operating Cost",
+    "type": "number",
+    "placeholder": "100",
+    "unit": "USD"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Estimated Profit",
+    "id": "gross_profit",
+    "label": "Gross Profit (USD)",
     "format": "currency"
   },
   {
-    "id": "out_roi",
+    "id": "op_costs",
+    "label": "Operating Costs (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "net_profit",
+    "label": "Net Profit (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "roi_pct",
     "label": "ROI (%)",
     "format": "percent"
   },
   {
-    "id": "out_breakeven",
-    "label": "Breakeven Point",
+    "id": "daily_avg",
+    "label": "Daily Average (USD)",
     "format": "currency"
   }
 ];
@@ -63,10 +82,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +116,31 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const capital    = parseFloat(vals.capital);
+    const profitPct  = parseFloat(vals.daily_profit) / 100;
+    const trades     = parseFloat(vals.daily_trades);
+    const days       = parseFloat(vals.operating_days);
+    const monthlyCost= parseFloat(vals.monthly_cost);
+    const grossProfit = capital * profitPct * trades * days;
+    const opCosts     = monthlyCost * (days / 30);
+    const netProfit   = grossProfit - opCosts;
+    const roi         = (netProfit / capital) * 100;
+    const dailyAvg    = netProfit / days;
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      gross_profit: '$' + grossProfit.toFixed(2),
+      op_costs:     '$' + opCosts.toFixed(2),
+      net_profit:   (netProfit >= 0 ? '+' : '') + '$' + netProfit.toFixed(2),
+      roi_pct:      roi.toFixed(2) + '%',
+      daily_avg:    '$' + dailyAvg.toFixed(2),
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +148,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +198,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

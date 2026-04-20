@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-impermanent-loss-en-pools-l2 | calculator | en */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,46 +10,51 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Amount / Monto",
+    "id": "price_initial",
+    "label": "Initial Token Price (P₀)",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "1.00",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Rate / Tasa (%)",
+    "id": "price_current",
+    "label": "Current Token Price (P₁)",
     "type": "number",
-    "placeholder": "0.5",
-    "unit": "%"
+    "placeholder": "1.80",
+    "unit": "USD"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1h",
-      "4h",
-      "1d",
-      "1w",
-      "1mo"
-    ]
+    "id": "liquidity",
+    "label": "Liquidity Provided",
+    "type": "number",
+    "placeholder": "5000",
+    "unit": "USD"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Estimated Profit",
-    "format": "currency"
+    "id": "price_ratio",
+    "label": "Price Ratio (P₁/P₀)",
+    "format": "number"
   },
   {
-    "id": "out_roi",
-    "label": "ROI (%)",
+    "id": "il_pct",
+    "label": "Impermanent Loss (%)",
     "format": "percent"
   },
   {
-    "id": "out_breakeven",
-    "label": "Breakeven Point",
+    "id": "hodl_value",
+    "label": "HODL Value (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "pool_value",
+    "label": "Pool Value (USD)",
+    "format": "currency"
+  },
+  {
+    "id": "il_amount",
+    "label": "IL Amount (USD)",
     "format": "currency"
   }
 ];
@@ -63,10 +68,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +102,29 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const p0        = parseFloat(vals.price_initial);
+    const p1        = parseFloat(vals.price_current);
+    const liquidity = parseFloat(vals.liquidity);
+    const ratio     = p1 / p0;
+    const ilPct     = (2 * Math.sqrt(ratio) / (1 + ratio) - 1) * 100;
+    const hodlValue = liquidity * (1 + ratio) / 2;
+    const poolValue = liquidity * Math.sqrt(ratio);
+    const ilAmount  = poolValue - hodlValue;
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      price_ratio: ratio.toFixed(4),
+      il_pct:      ilPct.toFixed(3) + '%',
+      hodl_value:  '$' + hodlValue.toFixed(2),
+      pool_value:  '$' + poolValue.toFixed(2),
+      il_amount:   (ilAmount >= 0 ? '+' : '') + '$' + ilAmount.toFixed(2),
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +132,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +182,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

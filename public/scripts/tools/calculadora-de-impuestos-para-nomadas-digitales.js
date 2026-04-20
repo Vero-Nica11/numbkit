@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-impuestos-para-nomadas-digitales | calculator | es */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,47 +10,54 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Monto inicial",
+    "id": "annual_income",
+    "label": "Ingreso Anual (USD)",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "60000",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Tasa (%)",
+    "id": "days_country",
+    "label": "Días en País de Residencia",
     "type": "number",
-    "placeholder": "0.5",
+    "placeholder": "120",
+    "unit": "días"
+  },
+  {
+    "id": "tax_rate",
+    "label": "Tasa de Impuesto (%)",
+    "type": "number",
+    "placeholder": "25",
     "unit": "%"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1 hora",
-      "4 horas",
-      "1 día",
-      "1 semana",
-      "1 mes"
-    ]
+    "id": "deductions",
+    "label": "Deducciones/Gastos Anuales",
+    "type": "number",
+    "placeholder": "5000",
+    "unit": "USD"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Ganancia Estimada",
+    "id": "taxable_income",
+    "label": "Ingreso Gravable (USD)",
     "format": "currency"
   },
   {
-    "id": "out_roi",
-    "label": "ROI (%)",
-    "format": "percent"
+    "id": "tax_owed",
+    "label": "Impuesto Estimado (USD)",
+    "format": "currency"
   },
   {
-    "id": "out_breakeven",
-    "label": "Punto de Equilibrio",
+    "id": "net_income",
+    "label": "Ingreso Neto (USD)",
     "format": "currency"
+  },
+  {
+    "id": "residency",
+    "label": "Estado de Residencia Fiscal",
+    "format": "text"
   }
 ];
 
@@ -63,10 +70,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +104,31 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const income     = parseFloat(vals.annual_income);
+    const days       = parseFloat(vals.days_country);
+    const taxRate    = parseFloat(vals.tax_rate) / 100;
+    const deductions = parseFloat(vals.deductions);
+    const taxable    = Math.max(0, income - deductions);
+    const taxOwed    = taxable * taxRate;
+    const netIncome  = income - taxOwed;
+    let residency    = '';
+    if (days >= 183)      residency = '✓ Residente fiscal (≥183 días)';
+    else if (days >= 90)  residency = '⚠️ Zona gris — consultá asesor';
+    else                  residency = '✗ No residente fiscal (<90 días)';
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      taxable_income: '$' + taxable.toFixed(2),
+      tax_owed:       '$' + taxOwed.toFixed(2),
+      net_income:     '$' + netIncome.toFixed(2),
+      residency:      residency,
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +136,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +186,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

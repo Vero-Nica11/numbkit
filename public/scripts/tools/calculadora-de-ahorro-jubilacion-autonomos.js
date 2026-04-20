@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-ahorro-jubilacion-autonomos | calculator | es */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,46 +10,60 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Monto inicial",
+    "id": "current_age",
+    "label": "Edad Actual",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "30",
+    "unit": "años"
+  },
+  {
+    "id": "retirement_age",
+    "label": "Edad de Jubilación",
+    "type": "number",
+    "placeholder": "65",
+    "unit": "años"
+  },
+  {
+    "id": "current_savings",
+    "label": "Ahorros Actuales (USD)",
+    "type": "number",
+    "placeholder": "10000",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Tasa (%)",
+    "id": "monthly_contrib",
+    "label": "Aporte Mensual (USD)",
     "type": "number",
-    "placeholder": "0.5",
-    "unit": "%"
+    "placeholder": "500",
+    "unit": "USD"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1 hora",
-      "4 horas",
-      "1 día",
-      "1 semana",
-      "1 mes"
-    ]
+    "id": "annual_return",
+    "label": "Rendimiento Anual Esperado (%)",
+    "type": "number",
+    "placeholder": "7",
+    "unit": "%"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Ganancia Estimada",
+    "id": "total_retirement",
+    "label": "Capital a la Jubilación",
     "format": "currency"
   },
   {
-    "id": "out_roi",
-    "label": "ROI (%)",
-    "format": "percent"
+    "id": "total_contrib",
+    "label": "Total Aportado",
+    "format": "currency"
   },
   {
-    "id": "out_breakeven",
-    "label": "Punto de Equilibrio",
+    "id": "total_interest",
+    "label": "Intereses Generados",
+    "format": "currency"
+  },
+  {
+    "id": "monthly_income",
+    "label": "Renta Mensual (regla 4%)",
     "format": "currency"
   }
 ];
@@ -63,10 +77,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +111,34 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const age      = parseFloat(vals.current_age);
+    const retAge   = parseFloat(vals.retirement_age);
+    const savings  = parseFloat(vals.current_savings);
+    const monthly  = parseFloat(vals.monthly_contrib);
+    const annReturn= parseFloat(vals.annual_return) / 100;
+    const years    = retAge - age;
+    const months   = years * 12;
+    const monthlyR = annReturn / 12;
+    const fvCurrent = savings * Math.pow(1 + annReturn, years);
+    const fvContrib = monthly * ((Math.pow(1 + monthlyR, months) - 1) / monthlyR);
+    const total     = fvCurrent + fvContrib;
+    const totalContrib = savings + (monthly * months);
+    const interest  = total - totalContrib;
+    const monthlyIncome = (total * 0.04) / 12;
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      total_retirement: '$' + total.toFixed(0),
+      total_contrib:    '$' + totalContrib.toFixed(0),
+      total_interest:   '$' + interest.toFixed(0),
+      monthly_income:   '$' + monthlyIncome.toFixed(0),
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +146,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +196,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

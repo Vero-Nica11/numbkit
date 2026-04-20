@@ -1,53 +1,62 @@
-/* HYDRA WIDGET | herramienta-de-tax-loss-harvesting-para-traders | financial_tool | en */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* HYDRA WIDGET | herramienta-de-tax-loss-harvesting-para-traders | calculator | en */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
   const TOOL_ID   = 'herramienta-de-tax-loss-harvesting-para-traders';
-  const TOOL_TYPE = 'financial_tool';
+  const TOOL_TYPE = 'calculator';
   const LANG      = 'en';
   const REQUIRES_API = false;
 
   const INPUTS = [
   {
-    "id": "input_value_a",
-    "label": "Primary Value",
+    "id": "unrealized_loss",
+    "label": "Unrealized Loss",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "5000",
     "unit": "USD"
   },
   {
-    "id": "input_value_b",
-    "label": "Secondary Value",
+    "id": "tax_rate",
+    "label": "Capital Gains Tax Rate (%)",
     "type": "number",
-    "placeholder": "200",
-    "unit": "USD"
+    "placeholder": "25",
+    "unit": "%"
   },
   {
-    "id": "input_period",
-    "label": "Time Frame",
-    "type": "select",
-    "options": [
-      "Monthly/Mensual",
-      "Quarterly/Trimestral",
-      "Annual/Anual"
-    ]
+    "id": "days_held",
+    "label": "Days Held",
+    "type": "number",
+    "placeholder": "90",
+    "unit": "days"
+  },
+  {
+    "id": "capital_gains",
+    "label": "Realized Gains This Year",
+    "type": "number",
+    "placeholder": "8000",
+    "unit": "USD"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_total",
-    "label": "Total Result",
+    "id": "tax_savings",
+    "label": "Tax Savings (USD)",
     "format": "currency"
   },
   {
-    "id": "out_net",
-    "label": "Net Value",
+    "id": "offset_gains",
+    "label": "Offset Against Gains",
     "format": "currency"
   },
   {
-    "id": "out_summary",
-    "label": "Summary",
+    "id": "wash_warn",
+    "label": "Wash Sale Warning",
+    "format": "text"
+  },
+  {
+    "id": "holding_type",
+    "label": "Holding Type",
     "format": "text"
   }
 ];
@@ -61,10 +70,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -99,23 +104,30 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const loss        = parseFloat(vals.unrealized_loss);
+    const taxRate     = parseFloat(vals.tax_rate) / 100;
+    const daysHeld    = parseFloat(vals.days_held);
+    const gains       = parseFloat(vals.capital_gains);
+    const offset      = Math.min(loss, gains);
+    const taxSavings  = offset * taxRate;
+    const washWarn    = daysHeld < 30
+      ? '⚠️ Risk: Do NOT repurchase same asset within 30 days (wash sale)'
+      : '✓ Safe: No wash sale risk';
+    const holdingType = daysHeld >= 365 ? 'Long-term (lower tax rate)' : 'Short-term';
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      tax_savings:  '$' + taxSavings.toFixed(2),
+      offset_gains: '$' + offset.toFixed(2),
+      wash_warn:    washWarn,
+      holding_type: holdingType,
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -123,7 +135,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -173,14 +185,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-precio-por-hora-real | calculator | es */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,46 +10,60 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Monto inicial",
+    "id": "annual_salary",
+    "label": "Salario Anual Deseado",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "50000",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Tasa (%)",
+    "id": "vacation_weeks",
+    "label": "Semanas de Vacaciones/Año",
     "type": "number",
-    "placeholder": "0.5",
+    "placeholder": "4",
+    "unit": "sem"
+  },
+  {
+    "id": "hours_week",
+    "label": "Horas Trabajadas/Semana",
+    "type": "number",
+    "placeholder": "40",
+    "unit": "hs"
+  },
+  {
+    "id": "billable_pct",
+    "label": "% Horas Facturables",
+    "type": "number",
+    "placeholder": "65",
     "unit": "%"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1 hora",
-      "4 horas",
-      "1 día",
-      "1 semana",
-      "1 mes"
-    ]
+    "id": "overhead",
+    "label": "Gastos Fijos Anuales",
+    "type": "number",
+    "placeholder": "6000",
+    "unit": "USD"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Ganancia Estimada",
+    "id": "billable_hours",
+    "label": "Horas Facturables/Año",
+    "format": "number"
+  },
+  {
+    "id": "total_cost",
+    "label": "Costo Total Anual (USD)",
     "format": "currency"
   },
   {
-    "id": "out_roi",
-    "label": "ROI (%)",
-    "format": "percent"
+    "id": "hourly_rate",
+    "label": "Tarifa por Hora Real (USD)",
+    "format": "currency"
   },
   {
-    "id": "out_breakeven",
-    "label": "Punto de Equilibrio",
+    "id": "daily_rate",
+    "label": "Tarifa Diaria (USD/8h)",
     "format": "currency"
   }
 ];
@@ -63,10 +77,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +111,30 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const salary       = parseFloat(vals.annual_salary);
+    const vacationWks  = parseFloat(vals.vacation_weeks);
+    const hoursWeek    = parseFloat(vals.hours_week);
+    const billablePct  = parseFloat(vals.billable_pct) / 100;
+    const overhead     = parseFloat(vals.overhead);
+    const workingWeeks = 52 - vacationWks;
+    const billableHrs  = workingWeeks * hoursWeek * billablePct;
+    const totalCost    = salary + overhead;
+    const hourlyRate   = totalCost / billableHrs;
+    const dailyRate    = hourlyRate * 8;
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      billable_hours: billableHrs.toFixed(0) + ' hs',
+      total_cost:     '$' + totalCost.toFixed(2),
+      hourly_rate:    '$' + hourlyRate.toFixed(2),
+      daily_rate:     '$' + dailyRate.toFixed(2),
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +142,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +192,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

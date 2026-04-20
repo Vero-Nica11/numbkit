@@ -1,5 +1,5 @@
 /* HYDRA WIDGET | calculadora-de-ltv-para-freelancers | calculator | es */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
@@ -10,46 +10,53 @@
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Monto inicial",
+    "id": "avg_revenue",
+    "label": "Ingreso Mensual por Cliente (USD)",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "1500",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Tasa (%)",
+    "id": "retention",
+    "label": "Retención Promedio",
     "type": "number",
-    "placeholder": "0.5",
+    "placeholder": "12",
+    "unit": "meses"
+  },
+  {
+    "id": "referral_rate",
+    "label": "% Clientes que Refieren",
+    "type": "number",
+    "placeholder": "25",
     "unit": "%"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1 hora",
-      "4 horas",
-      "1 día",
-      "1 semana",
-      "1 mes"
-    ]
+    "id": "margin",
+    "label": "Margen de Ganancia (%)",
+    "type": "number",
+    "placeholder": "70",
+    "unit": "%"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Ganancia Estimada",
+    "id": "gross_ltv",
+    "label": "LTV Bruto (USD)",
     "format": "currency"
   },
   {
-    "id": "out_roi",
-    "label": "ROI (%)",
-    "format": "percent"
+    "id": "net_ltv",
+    "label": "LTV Neto (USD)",
+    "format": "currency"
   },
   {
-    "id": "out_breakeven",
-    "label": "Punto de Equilibrio",
+    "id": "referral_val",
+    "label": "Valor por Referidos",
+    "format": "currency"
+  },
+  {
+    "id": "total_ltv",
+    "label": "LTV Total (USD)",
     "format": "currency"
   }
 ];
@@ -63,10 +70,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +104,28 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const avgRev      = parseFloat(vals.avg_revenue);
+    const retention   = parseFloat(vals.retention);
+    const referralPct = parseFloat(vals.referral_rate) / 100;
+    const margin      = parseFloat(vals.margin) / 100;
+    const grossLTV    = avgRev * retention;
+    const netLTV      = grossLTV * margin;
+    const referralVal = netLTV * referralPct;
+    const totalLTV    = netLTV + referralVal;
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      gross_ltv:    '$' + grossLTV.toFixed(2),
+      net_ltv:      '$' + netLTV.toFixed(2),
+      referral_val: '$' + referralVal.toFixed(2),
+      total_ltv:    '$' + totalLTV.toFixed(2),
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +133,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +183,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {

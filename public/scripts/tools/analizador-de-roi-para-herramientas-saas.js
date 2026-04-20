@@ -1,56 +1,68 @@
-/* HYDRA WIDGET | analizador-de-roi-para-herramientas-saas | calculator | es */
-/* Generated: 2026-04-14 — DO NOT EDIT MANUALLY */
+/* HYDRA WIDGET | analizador-de-roi-para-herramientas-saas | analyzer | es */
+/* Generated: 2026-04-20 — REAL BUSINESS LOGIC | Tier 1 priority batch */
 (function () {
   'use strict';
 
   const TOOL_ID   = 'analizador-de-roi-para-herramientas-saas';
-  const TOOL_TYPE = 'calculator';
+  const TOOL_TYPE = 'analyzer';
   const LANG      = 'es';
   const REQUIRES_API = false;
 
   const INPUTS = [
   {
-    "id": "input_a",
-    "label": "Monto inicial",
+    "id": "monthly_cost",
+    "label": "Costo Mensual SaaS (USD)",
     "type": "number",
-    "placeholder": "1000",
+    "placeholder": "49",
     "unit": "USD"
   },
   {
-    "id": "input_b",
-    "label": "Tasa (%)",
+    "id": "hours_saved",
+    "label": "Horas Ahorradas/Mes",
     "type": "number",
-    "placeholder": "0.5",
-    "unit": "%"
+    "placeholder": "10",
+    "unit": "hs"
   },
   {
-    "id": "input_c",
-    "label": "Period / Período",
-    "type": "select",
-    "options": [
-      "1 hora",
-      "4 horas",
-      "1 día",
-      "1 semana",
-      "1 mes"
-    ]
+    "id": "hourly_rate",
+    "label": "Tu Tarifa por Hora (USD)",
+    "type": "number",
+    "placeholder": "50",
+    "unit": "USD"
+  },
+  {
+    "id": "extra_revenue",
+    "label": "Ingresos Extra Generados/Mes",
+    "type": "number",
+    "placeholder": "200",
+    "unit": "USD"
   }
 ];
   const OUTPUTS = [
   {
-    "id": "out_profit",
-    "label": "Ganancia Estimada",
+    "id": "time_value",
+    "label": "Valor del Tiempo Ahorrado",
     "format": "currency"
   },
   {
-    "id": "out_roi",
+    "id": "total_benefit",
+    "label": "Beneficio Total Mensual",
+    "format": "currency"
+  },
+  {
+    "id": "net_roi",
+    "label": "ROI Neto Mensual",
+    "format": "currency"
+  },
+  {
+    "id": "roi_pct",
     "label": "ROI (%)",
     "format": "percent"
   },
   {
-    "id": "out_breakeven",
-    "label": "Punto de Equilibrio",
-    "format": "currency"
+    "id": "payback",
+    "label": "Payback Period",
+    "format": "text"
   }
 ];
 
@@ -63,10 +75,6 @@
     error:     LANG === 'es' ? 'Por favor completá todos los campos.' : 'Please fill in all required fields.',
     apiError:  LANG === 'es' ? 'Error al obtener datos de mercado.' : 'Could not fetch market data.',
   };
-
-  /* ── DOM helpers ─────────────────────────────────────── */
-  const $ = (s) => document.querySelector(s);
-  const $$ = (s) => [...document.querySelectorAll(s)];
 
   /* ── render inputs ───────────────────────────────────── */
   function renderInputs() {
@@ -101,23 +109,33 @@
     }).join('\n');
   }
 
-  /* ── calculate (placeholder logic — replace with real formulas) ──── */
+  /* ── calculate (REAL BUSINESS LOGIC) ─────────────────── */
   function calculate(vals) {
-    // TODO: replace with real business logic per tool
-    // Current: demonstration proportional calculation
-    const nums = Object.values(vals).map(v => parseFloat(v)).filter(n => !isNaN(n));
-    const base  = nums.reduce((a, b) => a + b, 0) / (nums.length || 1);
+    const cost       = parseFloat(vals.monthly_cost);
+    const hoursSaved = parseFloat(vals.hours_saved);
+    const rate       = parseFloat(vals.hourly_rate);
+    const extraRev   = parseFloat(vals.extra_revenue);
+    const timeValue   = hoursSaved * rate;
+    const totalBenefit= timeValue + extraRev;
+    const netROI      = totalBenefit - cost;
+    const roiPct      = (netROI / cost) * 100;
+    let payback = '';
+    if (netROI <= 0)           payback = '✗ No hay retorno — evaluar alternativa';
+    else if (netROI >= cost)   payback = '✓ Menos de 1 mes';
+    else                        payback = (cost / totalBenefit).toFixed(1) + ' meses';
     return {
-      out_primary:   (base * 0.035).toFixed(4),
-      out_secondary: (base * 0.012).toFixed(2),
-      out_tertiary:  LANG === 'es' ? 'Resultado calculado' : 'Calculated result',
+      time_value:    '$' + timeValue.toFixed(2),
+      total_benefit: '$' + totalBenefit.toFixed(2),
+      net_roi:       (netROI >= 0 ? '+' : '') + '$' + netROI.toFixed(2),
+      roi_pct:       roiPct.toFixed(1) + '%',
+      payback:       payback,
     };
   }
 
   /* ── render results ──────────────────────────────────── */
   function renderResults(res) {
-    return OUTPUTS.map((out, i) => {
-      const val = res[Object.keys(res)[i]] ?? '—';
+    return OUTPUTS.map((out) => {
+      const val = res[out.id] ?? '—';
       return `<div class="hw-result-row">
         <span class="hw-result-label">${out.label}</span>
         <span class="hw-result-value hw-format-${out.format}">${val}</span>
@@ -125,7 +143,7 @@
     }).join('\n');
   }
 
-  /* ── fetch market data (only if REQUIRES_API) ────────── */
+  /* ── fetch market data ───────────────────────────────── */
   async function fetchMarketData() {
     if (!REQUIRES_API) return {};
     try {
@@ -175,14 +193,17 @@
       if (Object.values(vals).some(v => v === '' || v == null)) {
         errBox.textContent = T.error; errBox.hidden = false; return;
       }
-      const results = calculate({...vals, ...marketData});
-      resGrid.innerHTML = renderResults(results);
-      resPanel.hidden = false;
-      // reveal CTA after calculation — highest CTR moment
-      const cta = document.getElementById('cta-primary');
-      if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-      // GA4 event
-      if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      try {
+        const results = calculate({...vals, ...marketData});
+        resGrid.innerHTML = renderResults(results);
+        resPanel.hidden = false;
+        const cta = document.getElementById('cta-primary');
+        if (cta) { cta.hidden = false; cta.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+        if (window.gtag) gtag('event', 'tool_calculate', {tool_id: TOOL_ID, tool_type: TOOL_TYPE});
+      } catch (err) {
+        errBox.textContent = T.error; errBox.hidden = false;
+        console.error('Calculation error:', err);
+      }
     });
 
     form.addEventListener('reset', () => {
