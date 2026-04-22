@@ -8,6 +8,7 @@ const { meta, schemaOrg } = Astro.props;
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{meta.title}</title>
   <meta name="description" content={meta.description} />
+  {meta.noindex && <meta name="robots" content="noindex, nofollow" />}
   <link rel="canonical" href={meta.canonical} />
   <!-- Open Graph -->
   <meta property="og:title"       content={meta.title} />
