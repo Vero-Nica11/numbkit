@@ -1,0 +1,78 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+const meta = {
+  title: "Privacy Policy | NumbKit",
+  description: "How NumbKit handles your data: cookies, analytics, advertising, and your rights under GDPR and CCPA.",
+  canonical: "https://numbkit.com/privacy/",
+  lang: "en",
+  slug: "privacy",
+};
+const schemaOrg = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Privacy Policy",
+  "url": "https://numbkit.com/privacy/",
+  "publisher": {
+    "@type": "Organization",
+    "name": "NumbKit",
+    "url": "https://numbkit.com"
+  }
+};
+---
+<BaseLayout meta={meta} schemaOrg={schemaOrg}>
+  <article style="max-width:720px;margin:2rem auto;color:var(--color-muted);line-height:1.8;padding:0 1rem">
+    <h1>Privacy Policy</h1>
+    <p><em>Last updated: 27 April 2026</em></p>
+
+    <p>NumbKit ("we", "our", "the site") operates the website <a href="https://numbkit.com">numbkit.com</a>, providing free interactive financial calculators and digital products. This policy explains what data we collect, how we use it, and your rights.</p>
+
+    <h2>1. What We Collect</h2>
+    <p>Our calculators run entirely in your browser. We do <strong>not</strong> require accounts, do not store your inputs on our servers, and do not maintain a user database.</p>
+    <p>However, the following third-party services automatically collect limited data when you visit:</p>
+    <ul>
+      <li><strong>Cloudflare</strong> (hosting & security): server logs including IP address, browser type, and pages visited. Used solely for security and abuse prevention. Logs are retained for up to 30 days.</li>
+      <li><strong>Google AdSense</strong> (advertising): cookies and identifiers used to serve relevant ads. Subject to <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
+      <li><strong>Google Analytics 4</strong> (when active): anonymized traffic statistics. IP addresses are anonymized before storage.</li>
+    </ul>
+
+    <h2>2. Cookies and Consent</h2>
+    <p>We use a Consent Management Platform (CMP) to comply with GDPR (EU/UK) and similar regulations. On your first visit you can choose:</p>
+    <ul>
+      <li><strong>Consent</strong> — accept advertising and analytics cookies</li>
+      <li><strong>Do not consent</strong> — basic functionality only, non-personalized ads</li>
+      <li><strong>Manage</strong> — granular control per purpose</li>
+    </ul>
+    <p>You can change your choice at any time via the consent link in the footer.</p>
+
+    <h2>3. Affiliate Links</h2>
+    <p>Some links on NumbKit are affiliate links — primarily to Binance. If you sign up through one of these links and complete certain actions, NumbKit may receive a commission at no extra cost to you. Affiliate links are marked with <code>rel="sponsored"</code> as required by Google's guidelines.</p>
+
+    <h2>4. Digital Products (Gumroad)</h2>
+    <p>If you purchase a digital product (e.g., the Crypto Arbitrage Pro Toolkit), the transaction is processed by <a href="https://gumroad.com/privacy" target="_blank" rel="noopener">Gumroad</a>. NumbKit does not handle, store, or access payment data. Gumroad is the data controller for purchase information.</p>
+
+    <h2>5. Your Rights</h2>
+    <p>If you are in the EU/UK (GDPR), California (CCPA), or other regions with similar laws, you have the right to:</p>
+    <ul>
+      <li>Access the personal data held about you</li>
+      <li>Request correction or deletion</li>
+      <li>Withdraw consent for cookies and processing</li>
+      <li>Lodge a complaint with your local data protection authority</li>
+    </ul>
+    <p>Most data we collect is processed by third parties (Google, Cloudflare, Gumroad). To exercise rights regarding their data, contact them directly via the privacy policies linked above. For NumbKit-specific requests, write to <strong>privacy@numbkit.com</strong>.</p>
+
+    <h2>6. Children</h2>
+    <p>NumbKit is not directed to children under 16. We do not knowingly collect data from minors.</p>
+
+    <h2>7. Changes to This Policy</h2>
+    <p>We may update this policy as the site evolves or as regulations change. The "Last updated" date above reflects the most recent revision.</p>
+
+    <h2>8. Contact</h2>
+    <p>For privacy-related questions: <strong>privacy@numbkit.com</strong></p>
+
+    <h2>9. Related Documents</h2>
+    <ul>
+      <li><a href="/disclaimer/">Legal Disclaimer</a></li>
+      <li><a href="/methodology/">Methodology</a></li>
+    </ul>
+  </article>
+</BaseLayout>

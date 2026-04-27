@@ -1,0 +1,96 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+const meta = {
+  title: "Methodology | How NumbKit Calculators Work",
+  description: "Transparent methodology behind NumbKit's financial calculators: formulas, data sources, update frequency, and limitations.",
+  canonical: "https://numbkit.com/methodology/",
+  lang: "en",
+  slug: "methodology",
+};
+const schemaOrg = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Methodology",
+  "url": "https://numbkit.com/methodology/",
+  "publisher": {
+    "@type": "Organization",
+    "name": "NumbKit",
+    "url": "https://numbkit.com"
+  }
+};
+---
+<BaseLayout meta={meta} schemaOrg={schemaOrg}>
+  <article style="max-width:720px;margin:2rem auto;color:var(--color-muted);line-height:1.8;padding:0 1rem">
+    <h1>Methodology</h1>
+    <p><em>Last updated: 27 April 2026</em></p>
+
+    <p>This page explains how NumbKit's calculators work: the formulas behind them, where the data comes from, how often we update, and the limitations you should be aware of. We publish this in the interest of transparency and to comply with Google's Helpful Content guidelines on E-E-A-T.</p>
+
+    <h2>1. Calculation Approach</h2>
+    <p>All NumbKit tools run 100% client-side in JavaScript. Your inputs never leave your browser. Each calculator implements published, verifiable formulas — no black-box models, no proprietary "secret sauce".</p>
+
+    <h2>2. Crypto Tools — Sources & Formulas</h2>
+
+    <h3>CEX-DEX Arbitrage</h3>
+    <p>Net profit = (Sell price − Buy price) × Trade size − (CEX taker fee + DEX swap fee + Gas cost + Slippage estimate). Slippage is estimated using a constant-product AMM model (x·y=k), the standard used by Uniswap v2 and forks.</p>
+
+    <h3>Impermanent Loss (L2 Pools)</h3>
+    <p>IL is calculated using the closed-form expression for 50/50 constant-product pools: <code>IL = 2·√(price_ratio) / (1 + price_ratio) − 1</code>. Reference: published research on automated market makers from Paradigm and Uniswap whitepapers.</p>
+
+    <h3>Multi-Leg Breakeven</h3>
+    <p>For a multi-leg strategy with N positions, breakeven price = Σ(entry_price_i × size_i) / Σ(size_i), adjusted for cumulative fees on each leg.</p>
+
+    <h3>Bridge Fees (Multi-Layer)</h3>
+    <p>Total bridge cost = sum of (origin chain gas + bridge protocol fee + destination chain gas) per hop. Fee structures sourced from public bridge documentation (LayerZero, Stargate, Across) and reviewed quarterly.</p>
+
+    <h3>Tax-Loss Harvesting</h3>
+    <p>Calculations follow standard short-term/long-term capital gains rules and apply the wash-sale window where jurisdictionally relevant. Always verify against your local tax code before acting.</p>
+
+    <h2>3. Freelance Finance Tools — Fuentes y Fórmulas</h2>
+
+    <h3>Tarifa real por hora</h3>
+    <p>Tarifa real = (Ingreso bruto deseado + Costos operativos + Impuestos estimados) ÷ (Horas facturables anuales). Las horas facturables se calculan descontando vacaciones, feriados, enfermedad y horas no facturables (administración, prospección, capacitación).</p>
+
+    <h3>Datos regulatorios LATAM (vigentes 2026)</h3>
+    <ul>
+      <li><strong>Colombia — UVT 2026:</strong> COP $52.374 (fuente: DIAN)</li>
+      <li><strong>Argentina — Monotributo Categoría A:</strong> hasta ARS $10.277.988,13 anuales (fuente: AFIP, vigente desde abril 2026)</li>
+      <li><strong>Chile — Retención boletas de honorarios:</strong> 15,25% (fuente: Servicio de Impuestos Internos)</li>
+    </ul>
+    <p>Estos valores se actualizan trimestralmente cuando los organismos oficiales publican cambios.</p>
+
+    <h3>IVA en infoproductos globales</h3>
+    <p>Los cálculos consideran las reglas de IVA del país del comprador (B2C) según las normas vigentes en la Unión Europea (One-Stop Shop), Reino Unido, y los regímenes de IVA digital en LATAM (Argentina, Colombia, Chile, México).</p>
+
+    <h3>Ahorro para jubilación de autónomos</h3>
+    <p>Proyecciones basadas en interés compuesto: <code>FV = P × (1 + r/n)^(n·t) + PMT × [((1 + r/n)^(n·t) − 1) / (r/n)]</code>, donde P es capital inicial, PMT aporte periódico, r tasa anual, n períodos por año, t años. Las tasas de retorno por defecto reflejan el promedio histórico de instrumentos balanceados, no recomendación de inversión.</p>
+
+    <h2>4. Update Frequency</h2>
+    <ul>
+      <li><strong>Tax brackets and regulatory thresholds:</strong> reviewed quarterly</li>
+      <li><strong>Exchange and DEX fee structures:</strong> reviewed quarterly</li>
+      <li><strong>Crypto market data (where applicable):</strong> fetched at page load from public APIs</li>
+      <li><strong>Formulas:</strong> reviewed when published research or regulation changes the underlying model</li>
+    </ul>
+
+    <h2>5. Limitations</h2>
+    <p>NumbKit calculators provide <strong>estimates</strong>, not guarantees. Real-world results may differ due to:</p>
+    <ul>
+      <li>Sudden market volatility not captured at the moment of calculation</li>
+      <li>Regulatory changes between our quarterly reviews</li>
+      <li>Exchange-specific promotional fees, VIP tiers, or hidden costs</li>
+      <li>Local tax rules that vary by province, municipality, or personal situation</li>
+      <li>Smart-contract risk and protocol-specific behaviour on DeFi tools</li>
+    </ul>
+    <p>For decisions involving significant amounts of money, always consult a licensed financial advisor, accountant, or tax specialist in your jurisdiction.</p>
+
+    <h2>6. Corrections and Feedback</h2>
+    <p>If you spot an error in any calculator or in this methodology page, please write to <strong>contact@numbkit.com</strong>. We treat correction requests as a priority and publish revisions within the same week when verified.</p>
+
+    <h2>7. Related Documents</h2>
+    <ul>
+      <li><a href="/disclaimer/">Legal Disclaimer</a></li>
+      <li><a href="/privacy/">Privacy Policy</a></li>
+    </ul>
+  </article>
+</BaseLayout>
